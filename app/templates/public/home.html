@@ -223,23 +223,5 @@
         {% endif %}
     </div>
 
-    <!-- Stock Search Section -->
-    <section class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
-        <h2 class="section-header">Search Stock News</h2>
-        <p class="text-sm text-secondary mb-4">Search for news about specific stocks</p>
-        <form action="/search" method="GET" class="flex gap-2">
-            <input type="text" name="symbol" placeholder="Enter stock symbol (e.g., RELIANCE, TCS)"
-                   class="input input-bordered flex-1" />
-            <button type="submit" class="btn btn-primary">Search</button>
-        </form>
-        <div class="mt-4">
-            <p class="text-xs text-secondary mb-2">Popular stocks:</p>
-            <div class="flex flex-wrap gap-2">
-                {% for symbol in ['RELIANCE', 'TCS', 'HDFC', 'INFY', 'ICICIBANK', 'SBIN'] %}
-                <a href="/stock/{{ symbol }}" class="badge badge-outline hover:badge-primary">{{ symbol }}</a>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
 </div>
 {% endblock %}

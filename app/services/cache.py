@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import TIMEZONE, CATEGORY_NAMES, SUBCATEGORY_NAMES
 from app.models.news import News
+from app.models.settings import StockSymbol
 
 
 class CacheManager:
@@ -42,6 +43,8 @@ class CacheManager:
             "last_updated": {},
             "all_news": [],  # Flat list for search
             "featured": [],
+            "symbols": [],  # Stock symbols list
+            "symbols_by_sector": {},  # Symbols grouped by sector
         }
         self._stock_cache_ttl = timedelta(minutes=30)
         self._initialized = True
@@ -243,6 +246,7 @@ class CacheManager:
             stats = {
                 "total_news": len(self._cache["all_news"]),
                 "featured_count": len(self._cache["featured"]),
+                "symbols_count": len(self._cache["symbols"]),
                 "categories": {},
             }
             for category in self._cache["news"]:
@@ -253,6 +257,60 @@ class CacheManager:
                     )
                     stats["categories"][category] = cat_count
             return stats
+
+    def load_symbols(self, db: Session):
+        """Load stock symbols from database into cache."""
+        with self._lock:
+            self._cache["symbols"] = []
+            self._cache["symbols_by_sector"] = {}
+
+            symbols = (
+                db.query(StockSymbol)
+                .filter(StockSymbol.is_active == True)
+                .order_by(StockSymbol.symbol)
+                .all()
+            )
+
+            for sym in symbols:
+                sym_dict = sym.to_dict()
+                self._cache["symbols"].append(sym_dict)
+
+                sector = sym.sector or "Other"
+                if sector not in self._cache["symbols_by_sector"]:
+                    self._cache["symbols_by_sector"][sector] = []
+                self._cache["symbols_by_sector"][sector].append(sym_dict)
+
+    def get_all_symbols(self) -> list[dict]:
+        """Get all stock symbols."""
+        with self._lock:
+            return self._cache["symbols"]
+
+    def get_nifty50_symbols(self) -> list[dict]:
+        """Get Nifty 50 symbols only."""
+        with self._lock:
+            return [s for s in self._cache["symbols"] if s.get("is_nifty50")]
+
+    def get_symbols_by_sector(self, sector: str = None) -> dict | list:
+        """Get symbols grouped by sector or for a specific sector."""
+        with self._lock:
+            if sector:
+                return self._cache["symbols_by_sector"].get(sector, [])
+            return self._cache["symbols_by_sector"]
+
+    def search_symbols(self, query: str, limit: int = 20) -> list[dict]:
+        """Search symbols by symbol or company name."""
+        with self._lock:
+            query_upper = query.upper()
+            query_lower = query.lower()
+            results = []
+            for sym in self._cache["symbols"]:
+                symbol = sym.get("symbol", "")
+                company = sym.get("company_name", "").lower()
+                if query_upper in symbol or query_lower in company:
+                    results.append(sym)
+                    if len(results) >= limit:
+                        break
+            return results
 
 
 # Singleton instance

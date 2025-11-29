@@ -146,6 +146,32 @@ async def search_page(
     })
 
 
+@router.get("/stocks", response_class=HTMLResponse)
+async def stocks_page(request: Request, sector: str = "", q: str = ""):
+    """Stock symbols search and browse page."""
+    # Always get all symbols for autocomplete
+    all_symbols = cache_manager.get_all_symbols()
+
+    if q:
+        symbols = cache_manager.search_symbols(q, limit=50)
+    elif sector:
+        symbols = cache_manager.get_symbols_by_sector(sector)
+    else:
+        symbols = all_symbols
+
+    sectors = list(cache_manager.get_symbols_by_sector().keys())
+
+    return templates.TemplateResponse("public/stocks.html", {
+        "request": request,
+        "symbols": symbols,
+        "all_symbols": all_symbols,  # For autocomplete JS
+        "sectors": sorted(sectors),
+        "current_sector": sector,
+        "search_query": q,
+        "category_names": CATEGORY_NAMES,
+    })
+
+
 @router.get("/stock/{symbol}", response_class=HTMLResponse)
 async def stock_page(request: Request, symbol: str, db: Session = Depends(get_db)):
     """Stock-specific news page."""
@@ -160,14 +186,18 @@ async def stock_page(request: Request, symbol: str, db: Session = Depends(get_db
         fetched = fetcher.fetch_stock_news(symbol, triggered_by="on_demand")
         news_items = [n.to_dict() for n in fetched]
 
-    # Get popular symbols for navigation
-    all_symbols = get_symbols()
-    popular_symbols = all_symbols[:20] if len(all_symbols) > 20 else all_symbols
+    # Get symbol details from cache
+    all_symbols = cache_manager.get_all_symbols()
+    symbol_info = next((s for s in all_symbols if s["symbol"] == symbol), None)
+
+    # Get Nifty 50 for navigation
+    nifty50 = cache_manager.get_nifty50_symbols()
 
     return templates.TemplateResponse("public/stock.html", {
         "request": request,
         "symbol": symbol,
+        "symbol_info": symbol_info,
         "news_items": news_items,
-        "popular_symbols": popular_symbols,
+        "nifty50_symbols": nifty50,
         "category_names": CATEGORY_NAMES,
     })

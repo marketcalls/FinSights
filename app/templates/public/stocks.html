@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Stocks{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex flex-col">
+    <!-- Hero Section - Screener Style -->
+    <div class="flex-1 flex flex-col items-center justify-center px-4 py-16 bg-base-200">
+        <h1 class="text-4xl md:text-5xl font-bold text-base-content mb-2">
+            Fin<span class="text-primary">Sights</span>
+        </h1>
+        <p class="text-secondary text-lg mb-10">Stock news and analysis for Indian investors</p>
+
+        <!-- Search Box with Autocomplete -->
+        <div class="w-full max-w-xl mb-8 relative" id="search-container">
+            <div class="relative">
+                <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input type="text" id="stock-search" value="{{ search_query }}"
+                       placeholder="Search for a company"
+                       class="input input-bordered w-full pl-12 pr-4 h-14 text-lg bg-base-100 border-base-300 focus:border-primary focus:outline-none rounded-lg shadow-sm"
+                       autocomplete="off" />
+            </div>
+            <!-- Autocomplete Dropdown -->
+            <div id="search-results" class="absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg hidden z-50 max-h-80 overflow-y-auto">
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="text-center max-w-2xl">
+            <p class="text-secondary text-sm mb-3">Or browse:</p>
+            <div class="flex flex-wrap justify-center gap-2">
+                {% for sym in symbols[:9] %}
+                <a href="/stock/{{ sym.symbol }}"
+                   class="px-4 py-2 bg-base-100 border border-base-300 rounded-full text-sm text-base-content hover:border-primary hover:text-primary transition-all">
+                    {{ sym.company_name | truncate(20, True, '...') }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section (shown when searching or filtering) -->
+    {% if search_query or current_sector %}
+    <div class="bg-base-100 border-t border-base-300">
+        <div class="container mx-auto px-4 py-8">
+            <!-- Sector Filter -->
+            <div class="flex flex-wrap gap-2 mb-6">
+                <a href="/stocks" class="btn btn-sm {% if not current_sector %}btn-primary{% else %}btn-ghost{% endif %}">
+                    All
+                </a>
+                {% for sector in sectors %}
+                <a href="/stocks?sector={{ sector }}"
+                   class="btn btn-sm {% if current_sector == sector %}btn-primary{% else %}btn-ghost{% endif %}">
+                    {{ sector }}
+                </a>
+                {% endfor %}
+            </div>
+
+            <!-- Results Info -->
+            <div class="text-sm text-secondary mb-4">
+                {% if search_query %}
+                Showing results for "{{ search_query }}" ({{ symbols|length }} found)
+                <a href="/stocks" class="text-primary hover:underline ml-2">Clear</a>
+                {% elif current_sector %}
+                {{ current_sector }} stocks ({{ symbols|length }})
+                {% endif %}
+            </div>
+
+            <!-- Results Grid -->
+            {% if symbols %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {% for sym in symbols %}
+                <a href="/stock/{{ sym.symbol }}"
+                   class="p-4 border border-base-300 rounded-lg hover:border-primary hover:shadow-sm transition-all group bg-base-100">
+                    <div class="flex items-center justify-between">
+                        <span class="font-semibold text-base-content group-hover:text-primary">{{ sym.symbol }}</span>
+                        {% if sym.is_nifty50 %}
+                        <span class="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded">N50</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-secondary mt-1 line-clamp-1">{{ sym.company_name }}</p>
+                    <span class="text-xs text-secondary/70 mt-2 inline-block">{{ sym.sector }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <p class="text-secondary">No stocks found. Try a different search.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Sector Browse Section -->
+    <div class="bg-base-100 border-t border-base-300">
+        <div class="container mx-auto px-4 py-8">
+            <h2 class="text-lg font-semibold text-base-content mb-4">Browse by Sector</h2>
+            <div class="flex flex-wrap gap-2">
+                {% for sector in sectors %}
+                <a href="/stocks?sector={{ sector }}"
+                   class="px-4 py-2 bg-base-200 border border-base-300 rounded-lg text-sm text-base-content hover:border-primary hover:text-primary transition-all">
+                    {{ sector }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Stock Data for JS -->
+<script>
+const allStocks = {{ all_symbols | tojson | safe }};
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('stock-search');
+    const resultsContainer = document.getElementById('search-results');
+
+    if (!searchInput || !resultsContainer) return;
+
+    let selectedIndex = -1;
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim().toLowerCase();
+
+        if (query.length < 1) {
+            resultsContainer.classList.add('hidden');
+            resultsContainer.innerHTML = '';
+            return;
+        }
+
+        // Filter stocks
+        const matches = allStocks.filter(stock => {
+            const symbol = stock.symbol.toLowerCase();
+            const company = stock.company_name.toLowerCase();
+            return symbol.includes(query) || company.includes(query);
+        }).slice(0, 10);
+
+        if (matches.length === 0) {
+            resultsContainer.innerHTML = '<div class="px-4 py-3 text-secondary text-sm">No results found</div>';
+            resultsContainer.classList.remove('hidden');
+            return;
+        }
+
+        // Render results
+        resultsContainer.innerHTML = matches.map((stock, index) => `
+            <a href="/stock/${stock.symbol}"
+               class="flex items-center justify-between px-4 py-3 hover:bg-base-200 cursor-pointer border-b border-base-200 last:border-0 search-result gap-4"
+               data-index="${index}">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="font-semibold text-base-content shrink-0">${stock.symbol}</span>
+                    <span class="text-secondary text-sm truncate">${stock.company_name}</span>
+                </div>
+                <span class="text-xs text-secondary/70 shrink-0 bg-base-200 px-2 py-0.5 rounded">${stock.sector}</span>
+            </a>
+        `).join('');
+
+        resultsContainer.classList.remove('hidden');
+        selectedIndex = -1;
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', function(e) {
+        const results = resultsContainer.querySelectorAll('.search-result');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, results.length - 1);
+            updateSelection(results);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, -1);
+            updateSelection(results);
+        } else if (e.key === 'Enter' && selectedIndex >= 0) {
+            e.preventDefault();
+            results[selectedIndex].click();
+        } else if (e.key === 'Escape') {
+            resultsContainer.classList.add('hidden');
+        }
+    });
+
+    function updateSelection(results) {
+        results.forEach((el, i) => {
+            if (i === selectedIndex) {
+                el.classList.add('bg-base-200');
+            } else {
+                el.classList.remove('bg-base-200');
+            }
+        });
+    }
+
+    // Close on click outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#search-container')) {
+            resultsContainer.classList.add('hidden');
+        }
+    });
+
+    // Focus shows results if there's a query
+    searchInput.addEventListener('focus', function() {
+        if (this.value.trim().length >= 1 && resultsContainer.innerHTML) {
+            resultsContainer.classList.remove('hidden');
+        }
+    });
+});
+</script>
+{% endblock %}

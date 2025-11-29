@@ -119,6 +119,31 @@ class ApiLog(Base):
         }
 
 
+class StockSymbol(Base):
+    """Nifty 50 and other stock symbols."""
+
+    __tablename__ = "stock_symbols"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), unique=True, nullable=False)
+    company_name = Column(String(200), nullable=False)
+    sector = Column(String(100), nullable=True)
+    is_nifty50 = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=get_ist_now)
+
+    def to_dict(self):
+        """Convert to dictionary."""
+        return {
+            "id": self.id,
+            "symbol": self.symbol,
+            "company_name": self.company_name,
+            "sector": self.sector,
+            "is_nifty50": self.is_nifty50,
+            "is_active": self.is_active,
+        }
+
+
 class AsyncRequest(Base):
     """Track pending async Perplexity API requests."""
 
