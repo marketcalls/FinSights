@@ -1,0 +1,125 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage News{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Manage News</h1>
+        <a href="/admin/news/create" class="btn btn-primary btn-sm">Create News</a>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-base-100 rounded-lg p-4 shadow-sm border border-base-300">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div class="form-control">
+                <label class="label label-text text-xs">Category</label>
+                <select name="category" class="select select-bordered select-sm">
+                    <option value="">All Categories</option>
+                    {% for cat, name in category_names.items() %}
+                    <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label label-text text-xs">Status</label>
+                <select name="status" class="select select-bordered select-sm">
+                    <option value="">All</option>
+                    <option value="published" {% if status == 'published' %}selected{% endif %}>Published</option>
+                    <option value="unpublished" {% if status == 'unpublished' %}selected{% endif %}>Unpublished</option>
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label label-text text-xs">Search</label>
+                <input type="text" name="search" value="{{ search or '' }}"
+                       placeholder="Search title..." class="input input-bordered input-sm w-48" />
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            <a href="/admin/news" class="btn btn-sm btn-ghost">Clear</a>
+        </form>
+    </div>
+
+    <!-- News Table -->
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-x-auto">
+        <table class="table table-zebra">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for news in news_items %}
+                <tr>
+                    <td class="max-w-xs">
+                        <div class="truncate font-medium">{{ news.title }}</div>
+                        {% if news.is_manual %}
+                        <span class="badge badge-xs badge-info">Manual</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-ghost badge-sm">{{ news.category }}</span>
+                        {% if news.subcategory %}
+                        <span class="text-xs text-secondary">/ {{ news.subcategory }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="text-xs">{{ news.news_type }}</span>
+                    </td>
+                    <td>
+                        <span class="badge badge-sm badge-{{ 'success' if news.is_published else 'ghost' }}">
+                            {{ 'Published' if news.is_published else 'Draft' }}
+                        </span>
+                    </td>
+                    <td class="text-xs text-secondary">
+                        {{ news.fetched_at[:10] if news.fetched_at else '' }}
+                    </td>
+                    <td>
+                        <div class="dropdown dropdown-end">
+                            <label tabindex="0" class="btn btn-ghost btn-xs">Actions</label>
+                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40">
+                                <li><a href="/news/{{ news.id }}" target="_blank">View</a></li>
+                                <li><a href="/admin/news/{{ news.id }}/edit">Edit</a></li>
+                                <li>
+                                    <form action="/admin/news/{{ news.id }}/toggle" method="POST">
+                                        <button type="submit" class="w-full text-left">
+                                            {{ 'Unpublish' if news.is_published else 'Publish' }}
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form action="/admin/news/{{ news.id }}/delete" method="POST"
+                                          onsubmit="return confirm('Delete this news?')">
+                                        <button type="submit" class="w-full text-left text-error">Delete</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-secondary py-8">No news found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="flex justify-center">
+        <div class="join">
+            {% for p in range(1, total_pages + 1) %}
+            <a href="?page={{ p }}&category={{ category or '' }}&status={{ status or '' }}&search={{ search or '' }}"
+               class="join-item btn btn-sm {% if p == page %}btn-active{% endif %}">{{ p }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

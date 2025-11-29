@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FinSights{% endblock %} - Indian Market News</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/static/css/output.css" rel="stylesheet">
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-base-200 min-h-screen">
+    <!-- Navbar -->
+    <nav class="navbar bg-base-100 shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto">
+            <div class="flex-1">
+                <a href="/" class="text-xl font-bold text-primary">FinSights</a>
+            </div>
+            <div class="flex-none gap-2">
+                <form action="/search" method="GET" class="hidden md:block">
+                    <input type="text" name="q" placeholder="Search news..."
+                           class="input input-bordered input-sm w-64" />
+                </form>
+                <div class="dropdown dropdown-end">
+                    <label tabindex="0" class="btn btn-ghost btn-sm">Categories</label>
+                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52">
+                        <li><a href="/category/market">Market Updates</a></li>
+                        <li><a href="/category/sector">Sector News</a></li>
+                        <li><a href="/category/macro">Macro & Economy</a></li>
+                        <li><a href="/category/regulation">Regulations</a></li>
+                    </ul>
+                </div>
+                <a href="/admin/login" class="btn btn-ghost btn-sm">Admin</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile search -->
+    <div class="md:hidden bg-base-100 p-3 border-b border-base-300">
+        <form action="/search" method="GET">
+            <input type="text" name="q" placeholder="Search news..."
+                   class="input input-bordered input-sm w-full" />
+        </form>
+    </div>
+
+    <!-- Main content -->
+    <main class="container mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer footer-center p-4 bg-base-100 text-base-content border-t border-base-300 mt-auto">
+        <aside>
+            <p class="text-sm text-secondary">FinSights - Indian Market News Summary Platform</p>
+        </aside>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

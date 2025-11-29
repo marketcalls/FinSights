@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Featured/Latest Section -->
+    {% if latest_news %}
+    <section>
+        <h2 class="section-header">Latest Updates</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for news in latest_news[:6] %}
+            <article class="news-card">
+                <div class="card-body p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="category-badge category-badge-{{ news.category }}">
+                            {{ category_names.get(news.category, news.category) }}
+                        </span>
+                        <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                    </div>
+                    <h3 class="card-title text-base font-semibold line-clamp-2">
+                        <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
+                    </h3>
+                    <p class="text-sm text-secondary line-clamp-2">{{ news.summary[:150] }}...</p>
+                    {% if news.source_name %}
+                    <div class="mt-2">
+                        <span class="source-link">{{ news.source_name }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Market Updates Section -->
+    {% if market_news %}
+    <section>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="section-header mb-0 border-0 pb-0">Market Updates</h2>
+            <a href="/category/market" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for news in market_news[:4] %}
+            <article class="news-card">
+                <div class="card-body p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="badge badge-primary badge-sm">
+                            {{ subcategory_names.get(news.subcategory, news.subcategory) }}
+                        </span>
+                        <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                    </div>
+                    <h3 class="card-title text-base font-semibold">
+                        <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
+                    </h3>
+                    <p class="text-sm text-secondary line-clamp-3">{{ news.summary[:200] }}...</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Sector News Section -->
+    {% if sector_news %}
+    <section>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="section-header mb-0 border-0 pb-0">Sector News</h2>
+            <a href="/category/sector" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+
+        <!-- Sector Tabs -->
+        <div class="tabs tabs-boxed bg-base-100 mb-4">
+            <a class="tab tab-active" data-sector="all">All</a>
+            <a class="tab" data-sector="auto">Auto</a>
+            <a class="tab" data-sector="banking">Banking</a>
+            <a class="tab" data-sector="pharma">Pharma</a>
+            <a class="tab" data-sector="it">IT</a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for news in sector_news[:6] %}
+            <article class="news-card" data-sector="{{ news.subcategory }}">
+                <div class="card-body p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="category-badge category-badge-sector">
+                            {{ subcategory_names.get(news.subcategory, news.subcategory) }}
+                        </span>
+                    </div>
+                    <h3 class="card-title text-sm font-semibold line-clamp-2">
+                        <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
+                    </h3>
+                    <p class="text-xs text-secondary line-clamp-2">{{ news.summary[:100] }}...</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Two Column Layout: Macro & Regulations -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Macro News -->
+        {% if macro_news %}
+        <section>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="section-header mb-0 border-0 pb-0">Macro & Economy</h2>
+                <a href="/category/macro" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="space-y-3">
+                {% for news in macro_news[:5] %}
+                <article class="news-card">
+                    <div class="card-body p-3">
+                        <div class="flex items-start gap-3">
+                            <span class="badge badge-ghost badge-sm shrink-0">
+                                {{ subcategory_names.get(news.subcategory, news.subcategory) }}
+                            </span>
+                            <div>
+                                <h3 class="text-sm font-medium line-clamp-2">
+                                    <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Regulations -->
+        {% if regulation_news %}
+        <section>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="section-header mb-0 border-0 pb-0">Regulations</h2>
+                <a href="/category/regulation" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="space-y-3">
+                {% for news in regulation_news[:5] %}
+                <article class="news-card">
+                    <div class="card-body p-3">
+                        <div class="flex items-start gap-3">
+                            <span class="badge badge-warning badge-sm shrink-0">
+                                {{ subcategory_names.get(news.subcategory, news.subcategory) }}
+                            </span>
+                            <div>
+                                <h3 class="text-sm font-medium line-clamp-2">
+                                    <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </div>
+
+    <!-- Stock Search Section -->
+    <section class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h2 class="section-header">Search Stock News</h2>
+        <p class="text-sm text-secondary mb-4">Search for news about specific stocks</p>
+        <form action="/search" method="GET" class="flex gap-2">
+            <input type="text" name="symbol" placeholder="Enter stock symbol (e.g., RELIANCE, TCS)"
+                   class="input input-bordered flex-1" />
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+        <div class="mt-4">
+            <p class="text-xs text-secondary mb-2">Popular stocks:</p>
+            <div class="flex flex-wrap gap-2">
+                {% for symbol in ['RELIANCE', 'TCS', 'HDFC', 'INFY', 'ICICIBANK', 'SBIN'] %}
+                <a href="/stock/{{ symbol }}" class="badge badge-outline hover:badge-primary">{{ symbol }}</a>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

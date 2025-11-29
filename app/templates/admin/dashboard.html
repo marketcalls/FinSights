@@ -1,0 +1,119 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Dashboard</h1>
+        <div class="text-sm text-secondary">Last updated: {{ current_time }}</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stats-card">
+            <div class="stat-title">Total News</div>
+            <div class="stat-value text-primary">{{ stats.total_news }}</div>
+            <div class="stat-desc">Articles in database</div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stat-title">Today's Fetches</div>
+            <div class="stat-value text-success">{{ stats.today_fetches }}</div>
+            <div class="stat-desc">API calls today</div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stat-title">Active Jobs</div>
+            <div class="stat-value text-info">{{ stats.active_jobs }}</div>
+            <div class="stat-desc">Scheduled tasks</div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stat-title">API Status</div>
+            <div class="stat-value text-{{ 'success' if stats.api_configured else 'warning' }}">
+                {{ 'Active' if stats.api_configured else 'Not Set' }}
+            </div>
+            <div class="stat-desc">Perplexity API</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h2 class="font-semibold text-lg mb-4">Quick Actions</h2>
+        <div class="flex flex-wrap gap-3">
+            <form action="/admin/scheduler/run-all" method="POST" class="inline">
+                <button type="submit" class="btn btn-primary btn-sm"
+                        onclick="return confirm('Run all scheduled jobs now?')">
+                    Fetch All News
+                </button>
+            </form>
+            <a href="/admin/news/create" class="btn btn-outline btn-sm">Create News</a>
+            <a href="/admin/scheduler" class="btn btn-outline btn-sm">Manage Scheduler</a>
+            {% if not stats.api_configured %}
+            <a href="/admin/settings" class="btn btn-warning btn-sm">Configure API Key</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent News -->
+        <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-semibold text-lg">Recent News</h2>
+                <a href="/admin/news" class="btn btn-ghost btn-xs">View All</a>
+            </div>
+            <div class="space-y-3">
+                {% for news in recent_news[:5] %}
+                <div class="flex items-start gap-3 pb-3 border-b border-base-200 last:border-0">
+                    <span class="badge badge-sm badge-{{ 'success' if news.is_published else 'ghost' }}">
+                        {{ 'Live' if news.is_published else 'Draft' }}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium truncate">{{ news.title }}</p>
+                        <p class="text-xs text-secondary">{{ news.category }} / {{ news.subcategory or 'general' }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-secondary text-sm">No news yet</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-semibold text-lg">Recent Activity</h2>
+                <a href="/admin/logs" class="btn btn-ghost btn-xs">View All</a>
+            </div>
+            <div class="space-y-2">
+                {% for log in recent_logs[:5] %}
+                <div class="log-entry log-{{ log.status }}">
+                    <span class="badge badge-xs badge-{{ 'success' if log.status == 'success' else 'error' }}">
+                        {{ log.status }}
+                    </span>
+                    <span class="flex-1 truncate">{{ log.job_name or log.event_type }}</span>
+                    <span class="text-xs text-secondary">{{ log.timestamp[:16] if log.timestamp else '' }}</span>
+                </div>
+                {% else %}
+                <p class="text-secondary text-sm">No activity yet</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Stats -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h2 class="font-semibold text-lg mb-4">News by Category</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {% for category, count in category_stats.items() %}
+            <div class="text-center p-4 bg-base-200 rounded-lg">
+                <div class="text-2xl font-bold text-primary">{{ count }}</div>
+                <div class="text-sm text-secondary capitalize">{{ category }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}{{ symbol }} News{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-base-content">{{ symbol }}</h1>
+                <p class="text-secondary">Stock News & Updates</p>
+            </div>
+            <a href="/" class="btn btn-ghost btn-sm">Back to Home</a>
+        </div>
+    </div>
+
+    <!-- News List -->
+    {% if news_items %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for news in news_items %}
+        <article class="news-card">
+            <div class="card-body p-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="category-badge category-badge-{{ news.category }}">
+                        {{ category_names.get(news.category, news.category) }}
+                    </span>
+                    <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                </div>
+                <h3 class="card-title text-base font-semibold line-clamp-2">
+                    <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
+                </h3>
+                <p class="text-sm text-secondary line-clamp-2">{{ news.summary[:150] }}...</p>
+                {% if news.source_name %}
+                <div class="mt-2">
+                    <span class="source-link">{{ news.source_name }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12 bg-base-100 rounded-lg shadow-sm border border-base-300">
+        <p class="text-secondary mb-4">No news found for {{ symbol }}</p>
+        <p class="text-sm text-secondary mb-4">
+            News for this stock will be fetched on demand.
+            Check back in a few moments.
+        </p>
+        <button onclick="location.reload()" class="btn btn-primary btn-sm">Refresh</button>
+    </div>
+    {% endif %}
+
+    <!-- Other Stocks -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h3 class="font-semibold text-base-content mb-3">Browse Other Stocks</h3>
+        <div class="flex flex-wrap gap-2">
+            {% for s in popular_symbols %}
+            <a href="/stock/{{ s }}"
+               class="badge {% if s == symbol %}badge-primary{% else %}badge-outline hover:badge-primary{% endif %}">
+                {{ s }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

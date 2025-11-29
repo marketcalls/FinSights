@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-base-content">{{ category_name }}</h1>
+            {% if subcategory %}
+            <p class="text-secondary">{{ subcategory_name }}</p>
+            {% endif %}
+        </div>
+        <a href="/" class="btn btn-ghost btn-sm">Back to Home</a>
+    </div>
+
+    <!-- Subcategory Tabs (if viewing category without subcategory) -->
+    {% if not subcategory and subcategories %}
+    <div class="tabs tabs-boxed bg-base-100">
+        <a href="/category/{{ category }}" class="tab {% if not subcategory %}tab-active{% endif %}">All</a>
+        {% for subcat in subcategories %}
+        <a href="/category/{{ category }}/{{ subcat }}" class="tab">
+            {{ subcategory_names.get(subcat, subcat) }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- News List -->
+    {% if news_items %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for news in news_items %}
+        <article class="news-card">
+            <div class="card-body p-4">
+                <div class="flex items-center gap-2 mb-2">
+                    {% if not subcategory %}
+                    <span class="badge badge-ghost badge-sm">
+                        {{ subcategory_names.get(news.subcategory, news.subcategory) }}
+                    </span>
+                    {% endif %}
+                    <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                </div>
+                <h3 class="card-title text-base font-semibold line-clamp-2">
+                    <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
+                </h3>
+                <p class="text-sm text-secondary line-clamp-2">{{ news.summary[:150] }}...</p>
+                {% if news.source_name %}
+                <div class="mt-2">
+                    <span class="source-link">{{ news.source_name }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <p class="text-secondary">No news found in this category.</p>
+        <a href="/" class="btn btn-primary btn-sm mt-4">Back to Home</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

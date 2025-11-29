@@ -1,0 +1,153 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">Settings</h1>
+
+    <!-- API Key Section -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h2 class="font-semibold text-lg mb-4">Perplexity API Key</h2>
+
+        <div class="flex items-center gap-4 mb-4">
+            <span class="badge badge-lg badge-{{ 'success' if api_key_set else 'warning' }}">
+                {{ 'Configured' if api_key_set else 'Not Set' }}
+            </span>
+            {% if api_key_set %}
+            <span class="text-sm text-secondary">Last updated: {{ api_key_updated or 'Unknown' }}</span>
+            {% endif %}
+        </div>
+
+        {% if api_key_masked %}
+        <div class="bg-base-200 rounded-lg p-3 mb-4 font-mono text-sm">
+            Current Key: <span class="text-primary">{{ api_key_masked }}</span>
+        </div>
+        {% endif %}
+
+        <form action="/admin/settings/api-key" method="POST" class="space-y-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">{{ 'New API Key' if api_key_set else 'API Key' }}</span>
+                </label>
+                <input type="text" name="api_key" placeholder="pplx-xxxx..."
+                       class="input input-bordered w-full max-w-lg font-mono" required />
+                <label class="label">
+                    <span class="label-text-alt text-secondary">
+                        Enter your Perplexity API key. Get one at
+                        <a href="https://www.perplexity.ai/settings/api" target="_blank" class="link link-primary">
+                            perplexity.ai/settings/api
+                        </a>
+                    </span>
+                </label>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit" class="btn btn-primary btn-sm">Save API Key</button>
+                <button type="submit" name="validate_key" value="true" class="btn btn-success btn-sm">
+                    Validate & Save
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Cache Section -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h2 class="font-semibold text-lg mb-4">Cache</h2>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div class="text-center p-4 bg-base-200 rounded-lg">
+                <div class="text-2xl font-bold">{{ cache_stats.total_news }}</div>
+                <div class="text-sm text-secondary">Cached News</div>
+            </div>
+            {% for cat, count in cache_stats.categories.items() %}
+            <div class="text-center p-4 bg-base-200 rounded-lg">
+                <div class="text-2xl font-bold">{{ count }}</div>
+                <div class="text-sm text-secondary capitalize">{{ cat }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <form action="/admin/settings/clear-cache" method="POST" class="inline">
+            <button type="submit" class="btn btn-warning btn-sm"
+                    onclick="return confirm('Clear all cache? News will be reloaded from database.')">
+                Clear Cache
+            </button>
+        </form>
+    </div>
+
+    <!-- News Sources Section -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h2 class="font-semibold text-lg mb-4">Trusted News Sources</h2>
+        <p class="text-sm text-secondary mb-4">
+            These domains are used as filters when fetching news from Perplexity API.
+            Only active sources are used.
+        </p>
+
+        <!-- Add New Source Form -->
+        <form action="/admin/settings/news-source/add" method="POST" class="mb-6">
+            <div class="flex gap-2 items-end">
+                <div class="form-control flex-1">
+                    <label class="label">
+                        <span class="label-text">Domain</span>
+                    </label>
+                    <input type="text" name="domain" placeholder="economictimes.com"
+                           class="input input-bordered input-sm w-full" required />
+                </div>
+                <div class="form-control flex-1">
+                    <label class="label">
+                        <span class="label-text">Name (optional)</span>
+                    </label>
+                    <input type="text" name="name" placeholder="Economic Times"
+                           class="input input-bordered input-sm w-full" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Add Source</button>
+            </div>
+        </form>
+
+        <!-- Sources List -->
+        <div class="space-y-2">
+            {% for source in news_sources %}
+            <div class="flex items-center justify-between p-3 rounded-lg {{ 'bg-base-200' if source.is_active else 'bg-base-300 opacity-60' }}">
+                <div class="flex items-center gap-3">
+                    <span class="badge badge-sm {{ 'badge-success' if source.is_active else 'badge-ghost' }}">
+                        {{ 'Active' if source.is_active else 'Inactive' }}
+                    </span>
+                    <div>
+                        <span class="font-medium">{{ source.domain }}</span>
+                        {% if source.name and source.name != source.domain.split('.')[0]|title %}
+                        <span class="text-sm text-secondary ml-2">({{ source.name }})</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <form action="/admin/settings/news-source/{{ source.id }}/toggle" method="POST" class="inline">
+                        <button type="submit" class="btn btn-ghost btn-xs">
+                            {{ 'Disable' if source.is_active else 'Enable' }}
+                        </button>
+                    </form>
+                    <form action="/admin/settings/news-source/{{ source.id }}/delete" method="POST" class="inline"
+                          onsubmit="return confirm('Delete {{ source.domain }}?')">
+                        <button type="submit" class="btn btn-ghost btn-xs text-error">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-4 text-sm text-secondary">
+            Total: {{ news_sources|length }} sources
+            ({{ news_sources|selectattr('is_active')|list|length }} active)
+        </div>
+    </div>
+
+    <!-- Timezone Section -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h2 class="font-semibold text-lg mb-4">Timezone</h2>
+        <p class="text-sm text-secondary mb-2">
+            All scheduled times are in Indian Standard Time (IST).
+        </p>
+        <span class="badge badge-info">{{ timezone }}</span>
+    </div>
+</div>
+{% endblock %}

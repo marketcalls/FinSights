@@ -1,0 +1,193 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Scheduler{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Scheduler Control</h1>
+        <div class="flex gap-2">
+            {% if scheduler_paused %}
+            <form action="/admin/scheduler/resume" method="POST" class="inline">
+                <button type="submit" class="btn btn-success btn-sm">Resume All</button>
+            </form>
+            {% else %}
+            <form action="/admin/scheduler/pause" method="POST" class="inline">
+                <button type="submit" class="btn btn-warning btn-sm">Pause All</button>
+            </form>
+            {% endif %}
+            <form action="/admin/scheduler/run-all" method="POST" class="inline">
+                <button type="submit" class="btn btn-primary btn-sm"
+                        onclick="return confirm('Run all enabled jobs now?')">
+                    Run All Now
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Status -->
+    <div class="alert alert-{{ 'warning' if scheduler_paused else 'success' }}">
+        <span>Scheduler Status: <strong>{{ 'Paused' if scheduler_paused else 'Running' }}</strong></span>
+    </div>
+
+    <!-- Jobs Table -->
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-x-auto">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Job Name</th>
+                    <th>Category</th>
+                    <th>Schedule</th>
+                    <th>Last Run</th>
+                    <th>Next Run</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr>
+                    <td>
+                        <div class="font-medium">{{ job.job_name }}</div>
+                        <div class="text-xs text-secondary truncate max-w-xs">{{ job.query_template[:50] }}...</div>
+                    </td>
+                    <td>
+                        <span class="badge badge-ghost badge-sm">{{ job.category }}</span>
+                        <span class="text-xs">/{{ job.subcategory }}</span>
+                    </td>
+                    <td>
+                        {% if job.schedule_type == 'cron' %}
+                        <span class="badge badge-info badge-sm">{{ job.cron_time }} IST</span>
+                        {% else %}
+                        <span class="badge badge-secondary badge-sm">Every {{ job.interval_minutes }} min</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-xs text-secondary">
+                        {{ job.last_run[:16].replace('T', ' ') if job.last_run else 'Never' }}
+                    </td>
+                    <td class="text-xs text-secondary">
+                        {{ job.next_run[:16].replace('T', ' ') if job.next_run else '-' }}
+                    </td>
+                    <td>
+                        <span class="badge badge-sm badge-{{ 'success' if job.is_enabled else 'ghost' }}">
+                            {{ 'Enabled' if job.is_enabled else 'Disabled' }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="flex gap-1">
+                            <form action="/admin/scheduler/job/{{ job.job_name }}/toggle" method="POST" class="inline">
+                                <button type="submit" class="btn btn-ghost btn-xs">
+                                    {{ 'Disable' if job.is_enabled else 'Enable' }}
+                                </button>
+                            </form>
+                            <form action="/admin/scheduler/job/{{ job.job_name }}/run" method="POST" class="inline">
+                                <button type="submit" class="btn btn-ghost btn-xs"
+                                        onclick="return confirm('Run this job now?')">
+                                    Run
+                                </button>
+                            </form>
+                            <button class="btn btn-ghost btn-xs"
+                                    onclick="openEditModal('{{ job.job_name }}', '{{ job.schedule_type }}', '{{ job.cron_time or '' }}', {{ job.interval_minutes or 0 }})">
+                                Edit
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Manual Fetch Section -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h2 class="font-semibold text-lg mb-4">Manual Fetch</h2>
+        <form action="/admin/fetch/custom" method="POST" class="space-y-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Custom Query</span>
+                </label>
+                <input type="text" name="query" placeholder="Enter a custom search query..."
+                       class="input input-bordered w-full" required />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Category</span>
+                    </label>
+                    <select name="category" class="select select-bordered">
+                        {% for cat, name in category_names.items() %}
+                        <option value="{{ cat }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Subcategory</span>
+                    </label>
+                    <input type="text" name="subcategory" placeholder="e.g., custom"
+                           class="input input-bordered" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Fetch News</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<dialog id="edit-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Edit Job Schedule</h3>
+        <form action="" method="POST" id="edit-form">
+            <input type="hidden" name="job_name" id="edit-job-name" />
+
+            <div class="form-control mb-4" id="cron-time-group">
+                <label class="label">
+                    <span class="label-text">Time (HH:MM IST)</span>
+                </label>
+                <input type="time" name="cron_time" id="edit-cron-time" class="input input-bordered" />
+            </div>
+
+            <div class="form-control mb-4" id="interval-group">
+                <label class="label">
+                    <span class="label-text">Interval (minutes)</span>
+                </label>
+                <input type="number" name="interval_minutes" id="edit-interval" min="1"
+                       class="input input-bordered" />
+            </div>
+
+            <div class="modal-action">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn" onclick="document.getElementById('edit-modal').close()">Cancel</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEditModal(jobName, scheduleType, cronTime, interval) {
+    document.getElementById('edit-job-name').value = jobName;
+    document.getElementById('edit-form').action = '/admin/scheduler/job/' + jobName + '/edit';
+
+    const cronGroup = document.getElementById('cron-time-group');
+    const intervalGroup = document.getElementById('interval-group');
+
+    if (scheduleType === 'cron') {
+        cronGroup.style.display = 'block';
+        intervalGroup.style.display = 'none';
+        document.getElementById('edit-cron-time').value = cronTime;
+    } else {
+        cronGroup.style.display = 'none';
+        intervalGroup.style.display = 'block';
+        document.getElementById('edit-interval').value = interval;
+    }
+
+    document.getElementById('edit-modal').showModal();
+}
+</script>
+{% endblock %}

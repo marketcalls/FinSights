@@ -1,0 +1,122 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ 'Edit' if news else 'Create' }} News{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">{{ 'Edit' if news else 'Create' }} News</h1>
+        <a href="/admin/news" class="btn btn-ghost btn-sm">Back to List</a>
+    </div>
+
+    <form method="POST" class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300 space-y-6">
+        <!-- Title -->
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text font-medium">Title *</span>
+            </label>
+            <input type="text" name="title" value="{{ news.title if news else '' }}"
+                   class="input input-bordered w-full" required />
+        </div>
+
+        <!-- Summary -->
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text font-medium">Summary *</span>
+            </label>
+            <textarea name="summary" rows="3" class="textarea textarea-bordered w-full" required
+                      placeholder="Brief summary of the news">{{ news.summary if news else '' }}</textarea>
+        </div>
+
+        <!-- Content -->
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text font-medium">Full Content</span>
+            </label>
+            <textarea name="content" rows="10" class="textarea textarea-bordered w-full font-mono text-sm"
+                      placeholder="Full article content (supports markdown)">{{ news.content if news else '' }}</textarea>
+        </div>
+
+        <!-- Category & Subcategory -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Category *</span>
+                </label>
+                <select name="category" class="select select-bordered w-full" required>
+                    {% for cat, name in category_names.items() %}
+                    <option value="{{ cat }}" {% if news and news.category == cat %}selected{% endif %}>
+                        {{ name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Subcategory</span>
+                </label>
+                <select name="subcategory" class="select select-bordered w-full">
+                    <option value="">General</option>
+                    {% for subcat, name in subcategory_names.items() %}
+                    <option value="{{ subcat }}" {% if news and news.subcategory == subcat %}selected{% endif %}>
+                        {{ name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Source -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Source Name</span>
+                </label>
+                <input type="text" name="source_name" value="{{ news.source_name if news else '' }}"
+                       class="input input-bordered w-full" placeholder="e.g., Economic Times" />
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Source URL</span>
+                </label>
+                <input type="url" name="source_url" value="{{ news.source_url if news else '' }}"
+                       class="input input-bordered w-full" placeholder="https://..." />
+            </div>
+        </div>
+
+        <!-- Stock Symbols -->
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text font-medium">Related Stock Symbols</span>
+            </label>
+            <input type="text" name="symbols" value="{{ news.symbols if news else '' }}"
+                   class="input input-bordered w-full" placeholder="RELIANCE,TCS,INFY (comma-separated)" />
+        </div>
+
+        <!-- Options -->
+        <div class="flex flex-wrap gap-6">
+            <label class="label cursor-pointer gap-2">
+                <input type="checkbox" name="is_published" class="checkbox checkbox-primary"
+                       {% if not news or news.is_published %}checked{% endif %} />
+                <span class="label-text">Published</span>
+            </label>
+
+            <label class="label cursor-pointer gap-2">
+                <input type="checkbox" name="is_featured" class="checkbox checkbox-primary"
+                       {% if news and news.is_featured %}checked{% endif %} />
+                <span class="label-text">Featured</span>
+            </label>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex gap-3">
+            <button type="submit" class="btn btn-primary">
+                {{ 'Update News' if news else 'Create News' }}
+            </button>
+            <a href="/admin/news" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

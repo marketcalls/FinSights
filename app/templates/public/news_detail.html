@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}{{ news.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/category/{{ news.category }}">{{ category_names.get(news.category, news.category) }}</a></li>
+            {% if news.subcategory %}
+            <li><a href="/category/{{ news.category }}/{{ news.subcategory }}">{{ subcategory_names.get(news.subcategory, news.subcategory) }}</a></li>
+            {% endif %}
+            <li class="text-secondary">Article</li>
+        </ul>
+    </div>
+
+    <!-- Article -->
+    <article class="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-hidden">
+        <div class="p-6 md:p-8">
+            <!-- Meta -->
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+                <span class="category-badge category-badge-{{ news.category }}">
+                    {{ category_names.get(news.category, news.category) }}
+                </span>
+                {% if news.subcategory %}
+                <span class="badge badge-outline badge-sm">
+                    {{ subcategory_names.get(news.subcategory, news.subcategory) }}
+                </span>
+                {% endif %}
+                {% if news.news_type == 'summary' %}
+                <span class="badge badge-info badge-sm">AI Summary</span>
+                {% endif %}
+            </div>
+
+            <!-- Title -->
+            <h1 class="text-2xl md:text-3xl font-bold text-base-content mb-4 text-balance">
+                {{ news.title }}
+            </h1>
+
+            <!-- Date & Source -->
+            <div class="flex flex-wrap items-center gap-4 text-sm text-secondary mb-6 pb-6 border-b border-base-300">
+                {% if news.fetched_at %}
+                <span>{{ news.fetched_at[:16].replace('T', ' ') }} IST</span>
+                {% endif %}
+                {% if news.source_name %}
+                <span>Source: {{ news.source_name }}</span>
+                {% endif %}
+            </div>
+
+            <!-- Content -->
+            <div class="prose prose-sm md:prose max-w-none">
+                {% if news.content %}
+                {{ news.content | safe }}
+                {% else %}
+                <p>{{ news.summary }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Citations -->
+            {% if news.citations %}
+            <div class="mt-8 pt-6 border-t border-base-300">
+                <h3 class="font-semibold text-base-content mb-3">Sources</h3>
+                <ul class="space-y-2">
+                    {% for citation in news.citations %}
+                    <li class="flex items-start gap-2">
+                        <span class="badge badge-sm">{{ citation.index }}</span>
+                        <a href="{{ citation.url }}" target="_blank" rel="noopener"
+                           class="text-sm text-primary hover:underline break-all">
+                            {{ citation.title or citation.url }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Source Link -->
+            {% if news.source_url %}
+            <div class="mt-6 pt-6 border-t border-base-300">
+                <a href="{{ news.source_url }}" target="_blank" rel="noopener"
+                   class="btn btn-outline btn-sm">
+                    Read Original Article
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Stock Tags -->
+            {% if news.symbols %}
+            <div class="mt-6 pt-6 border-t border-base-300">
+                <h3 class="font-semibold text-base-content mb-3">Related Stocks</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for symbol in news.symbols.split(',') %}
+                    <a href="/stock/{{ symbol.strip() }}" class="badge badge-primary badge-outline">
+                        {{ symbol.strip() }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </article>
+
+    <!-- Back Button -->
+    <div class="mt-6">
+        <a href="javascript:history.back()" class="btn btn-ghost btn-sm">Back</a>
+    </div>
+</div>
+{% endblock %}

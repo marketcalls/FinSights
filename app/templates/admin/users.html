@@ -1,0 +1,125 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Manage Users</h1>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('create-modal').showModal()">
+            Create User
+        </button>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-x-auto">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td class="font-medium">{{ user.username }}</td>
+                    <td>
+                        <span class="badge badge-sm badge-{{ 'success' if user.is_active else 'ghost' }}">
+                            {{ 'Active' if user.is_active else 'Inactive' }}
+                        </span>
+                    </td>
+                    <td class="text-sm text-secondary">
+                        {{ user.created_at[:10] if user.created_at else '' }}
+                    </td>
+                    <td>
+                        <div class="flex gap-2">
+                            <button class="btn btn-ghost btn-xs"
+                                    onclick="openPasswordModal({{ user.id }}, '{{ user.username }}')">
+                                Reset Password
+                            </button>
+                            {% if user.id != current_user.id %}
+                            <form action="/admin/users/{{ user.id }}/toggle" method="POST" class="inline">
+                                <button type="submit" class="btn btn-ghost btn-xs">
+                                    {{ 'Deactivate' if user.is_active else 'Activate' }}
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<dialog id="create-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Create Admin User</h3>
+        <form action="/admin/users/create" method="POST" class="space-y-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Username</span>
+                </label>
+                <input type="text" name="username" class="input input-bordered" required />
+            </div>
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Password</span>
+                </label>
+                <input type="password" name="password" class="input input-bordered" required minlength="6" />
+            </div>
+            <div class="modal-action">
+                <button type="submit" class="btn btn-primary">Create</button>
+                <button type="button" class="btn" onclick="document.getElementById('create-modal').close()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Reset Password Modal -->
+<dialog id="password-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Reset Password for <span id="password-username"></span></h3>
+        <form action="" method="POST" id="password-form" class="space-y-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">New Password</span>
+                </label>
+                <input type="password" name="password" class="input input-bordered" required minlength="6" />
+            </div>
+            <div class="modal-action">
+                <button type="submit" class="btn btn-primary">Reset</button>
+                <button type="button" class="btn" onclick="document.getElementById('password-modal').close()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openPasswordModal(userId, username) {
+    document.getElementById('password-username').textContent = username;
+    document.getElementById('password-form').action = '/admin/users/' + userId + '/password';
+    document.getElementById('password-modal').showModal();
+}
+</script>
+{% endblock %}

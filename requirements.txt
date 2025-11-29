@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+sqlalchemy
+aiosqlite
+python-dotenv
+perplexityai
+apscheduler
+bcrypt
+python-jose
+httpx
+cryptography
+pytz
+itsdangerous

@@ -1,0 +1,133 @@
+{% extends "admin/base.html" %}
+
+{% block title %}API Logs{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">API Logs</h1>
+        <a href="/admin/logs/export" class="btn btn-outline btn-sm">Export CSV</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="stats-card">
+            <div class="stat-title">Total Calls</div>
+            <div class="stat-value text-lg">{{ stats.total }}</div>
+        </div>
+        <div class="stats-card">
+            <div class="stat-title">Success</div>
+            <div class="stat-value text-lg text-success">{{ stats.success }}</div>
+        </div>
+        <div class="stats-card">
+            <div class="stat-title">Failed</div>
+            <div class="stat-value text-lg text-error">{{ stats.failed }}</div>
+        </div>
+        <div class="stats-card">
+            <div class="stat-title">Avg Response</div>
+            <div class="stat-value text-lg">{{ stats.avg_response_time }}ms</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-base-100 rounded-lg p-4 shadow-sm border border-base-300">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div class="form-control">
+                <label class="label label-text text-xs">Event Type</label>
+                <select name="event_type" class="select select-bordered select-sm">
+                    <option value="">All Types</option>
+                    <option value="api_call" {% if event_type == 'api_call' %}selected{% endif %}>API Call</option>
+                    <option value="scheduler" {% if event_type == 'scheduler' %}selected{% endif %}>Scheduler</option>
+                    <option value="manual_trigger" {% if event_type == 'manual_trigger' %}selected{% endif %}>Manual</option>
+                    <option value="error" {% if event_type == 'error' %}selected{% endif %}>Error</option>
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label label-text text-xs">Status</label>
+                <select name="status" class="select select-bordered select-sm">
+                    <option value="">All</option>
+                    <option value="success" {% if status == 'success' %}selected{% endif %}>Success</option>
+                    <option value="failed" {% if status == 'failed' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label label-text text-xs">Job Name</label>
+                <input type="text" name="job_name" value="{{ job_name or '' }}"
+                       placeholder="Filter by job..." class="input input-bordered input-sm w-40" />
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            <a href="/admin/logs" class="btn btn-sm btn-ghost">Clear</a>
+        </form>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-x-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Event</th>
+                    <th>Job</th>
+                    <th>Status</th>
+                    <th>Response</th>
+                    <th>News</th>
+                    <th>Triggered By</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr class="{% if log.status == 'failed' %}bg-error/5{% endif %}">
+                    <td class="text-xs font-mono">
+                        {{ log.timestamp[:19].replace('T', ' ') if log.timestamp else '' }}
+                    </td>
+                    <td>
+                        <span class="badge badge-ghost badge-xs">{{ log.event_type }}</span>
+                    </td>
+                    <td class="text-xs">{{ log.job_name or '-' }}</td>
+                    <td>
+                        <span class="badge badge-xs badge-{{ 'success' if log.status == 'success' else 'error' }}">
+                            {{ log.status }}
+                        </span>
+                    </td>
+                    <td class="text-xs">{{ log.response_time_ms or '-' }}ms</td>
+                    <td class="text-xs">{{ log.news_count or 0 }}</td>
+                    <td class="text-xs">{{ log.triggered_by or '-' }}</td>
+                    <td>
+                        {% if log.error_message %}
+                        <button class="btn btn-ghost btn-xs text-error"
+                                onclick="alert('{{ log.error_message | e }}')">
+                            Error
+                        </button>
+                        {% elif log.query %}
+                        <button class="btn btn-ghost btn-xs"
+                                onclick="alert('{{ log.query | e }}')">
+                            Query
+                        </button>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-secondary py-8">No logs found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="flex justify-center">
+        <div class="join">
+            {% for p in range(1, total_pages + 1) %}
+            <a href="?page={{ p }}&event_type={{ event_type or '' }}&status={{ status or '' }}&job_name={{ job_name or '' }}"
+               class="join-item btn btn-sm {% if p == page %}btn-active{% endif %}">{{ p }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

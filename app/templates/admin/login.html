@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - FinSights Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/static/css/output.css" rel="stylesheet">
+</head>
+<body class="bg-base-200 min-h-screen flex items-center justify-center">
+    <div class="card w-96 bg-base-100 shadow-lg">
+        <div class="card-body">
+            <h2 class="card-title text-center justify-center mb-4">
+                <span class="text-primary">FinSights</span> Admin
+            </h2>
+
+            {% if error %}
+            <div class="alert alert-error mb-4">
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="/admin/login">
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text">Username</span>
+                    </label>
+                    <input type="text" name="username" placeholder="Enter username"
+                           class="input input-bordered w-full" required />
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text">Password</span>
+                    </label>
+                    <input type="password" name="password" placeholder="Enter password"
+                           class="input input-bordered w-full" required />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full">Login</button>
+            </form>
+
+            <div class="divider">OR</div>
+
+            <a href="/" class="btn btn-ghost btn-sm">Back to Site</a>
+        </div>
+    </div>
+</body>
+</html>

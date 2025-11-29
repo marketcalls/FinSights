@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Search: {{ query }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Search Header -->
+    <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300">
+        <h1 class="text-xl font-bold text-base-content mb-4">Search Results</h1>
+        <form action="/search" method="GET" class="flex gap-2">
+            <input type="text" name="q" value="{{ query }}" placeholder="Search news..."
+                   class="input input-bordered flex-1" />
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+        {% if query %}
+        <p class="text-sm text-secondary mt-2">
+            Found {{ results|length }} results for "{{ query }}"
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Results -->
+    {% if results %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for news in results %}
+        <article class="news-card">
+            <div class="card-body p-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="category-badge category-badge-{{ news.category }}">
+                        {{ category_names.get(news.category, news.category) }}
+                    </span>
+                    <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                </div>
+                <h3 class="card-title text-base font-semibold line-clamp-2">
+                    <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
+                </h3>
+                <p class="text-sm text-secondary line-clamp-2">{{ news.summary[:150] }}...</p>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="text-center py-12 bg-base-100 rounded-lg shadow-sm">
+        <p class="text-secondary mb-4">No results found for "{{ query }}"</p>
+        <p class="text-sm text-secondary">Try a different search term or browse by category</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

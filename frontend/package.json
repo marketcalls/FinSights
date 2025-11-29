@@ -1,0 +1,16 @@
+{
+  "name": "finsights-frontend",
+  "version": "1.0.0",
+  "description": "Frontend build for FinSights",
+  "scripts": {
+    "build": "npx tailwindcss -i ./src/input.css -o ../app/static/css/output.css --minify",
+    "watch": "npx tailwindcss -i ./src/input.css -o ../app/static/css/output.css --watch",
+    "dev": "npx tailwindcss -i ./src/input.css -o ../app/static/css/output.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "daisyui": "^4.4.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0"
+  }
+}
