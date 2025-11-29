@@ -42,17 +42,64 @@
             <!-- Date & Source -->
             <div class="flex flex-wrap items-center gap-4 text-sm text-secondary mb-6 pb-6 border-b border-base-300">
                 {% if news.fetched_at %}
-                <span>{{ news.fetched_at[:16].replace('T', ' ') }} IST</span>
+                <span>{{ news.fetched_at | format_date('time') }} IST</span>
                 {% endif %}
                 {% if news.source_name %}
                 <span>Source: {{ news.source_name }}</span>
                 {% endif %}
+                {% if news.sentiment_score is not none %}
+                {{ news.sentiment_score | sentiment_badge }}
+                {% endif %}
             </div>
 
+            <!-- Sentiment Analysis -->
+            {% if news.sentiment_score is not none and news.sentiment_explanation %}
+            <div class="bg-base-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0">
+                        {{ news.sentiment_score | sentiment_badge(False) }}
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-base-content text-sm mb-1">Sentiment Analysis</h3>
+                        <p class="text-sm text-base-content/80">{{ news.sentiment_explanation }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Key Points Summary (if content is long) -->
+            {% if news.content and news.content|length > 500 %}
+            {% set key_points = news.content | extract_key_points(4) %}
+            {% if key_points %}
+            <div class="bg-base-200 rounded-lg p-4 mb-6">
+                <h3 class="font-semibold text-base-content mb-3">Key Points</h3>
+                <ul class="space-y-2">
+                    {% for point in key_points %}
+                    <li class="flex items-start gap-2">
+                        <span class="text-primary mt-1">-</span>
+                        <span class="text-sm text-base-content/80">{{ point }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            {% endif %}
+
             <!-- Content -->
-            <div class="prose prose-sm md:prose max-w-none">
+            <div class="prose prose-slate prose-sm md:prose-base max-w-none
+                        prose-headings:text-base-content prose-headings:font-semibold
+                        prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3
+                        prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2
+                        prose-p:text-base-content/90 prose-p:leading-relaxed
+                        prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                        prose-strong:text-base-content prose-strong:font-semibold
+                        prose-ul:my-4 prose-ol:my-4
+                        prose-li:text-base-content/90 prose-li:my-1
+                        prose-blockquote:border-l-primary prose-blockquote:bg-base-200 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r
+                        prose-code:text-primary prose-code:bg-base-200 prose-code:px-1 prose-code:rounded prose-code:before:content-[''] prose-code:after:content-['']
+                        prose-pre:bg-base-200 prose-pre:border prose-pre:border-base-300">
                 {% if news.content %}
-                {{ news.content | safe }}
+                {{ news.content | markdown }}
                 {% else %}
                 <p>{{ news.summary }}</p>
                 {% endif %}
@@ -65,8 +112,8 @@
                 <ul class="space-y-2">
                     {% for citation in news.citations %}
                     <li class="flex items-start gap-2">
-                        <span class="badge badge-sm">{{ citation.index }}</span>
-                        <a href="{{ citation.url }}" target="_blank" rel="noopener"
+                        <span class="badge badge-sm badge-ghost">{{ citation.index }}</span>
+                        <a href="{{ citation.url }}" target="_blank" rel="noopener noreferrer"
                            class="text-sm text-primary hover:underline break-all">
                             {{ citation.title or citation.url }}
                         </a>
@@ -79,7 +126,7 @@
             <!-- Source Link -->
             {% if news.source_url %}
             <div class="mt-6 pt-6 border-t border-base-300">
-                <a href="{{ news.source_url }}" target="_blank" rel="noopener"
+                <a href="{{ news.source_url }}" target="_blank" rel="noopener noreferrer"
                    class="btn btn-outline btn-sm">
                     Read Original Article
                 </a>
@@ -92,7 +139,7 @@
                 <h3 class="font-semibold text-base-content mb-3">Related Stocks</h3>
                 <div class="flex flex-wrap gap-2">
                     {% for symbol in news.symbols.split(',') %}
-                    <a href="/stock/{{ symbol.strip() }}" class="badge badge-primary badge-outline">
+                    <a href="/stock/{{ symbol.strip() }}" class="badge badge-primary badge-outline hover:badge-primary">
                         {{ symbol.strip() }}
                     </a>
                     {% endfor %}

@@ -1,5 +1,6 @@
 """
 APScheduler service for periodic news fetching.
+Supports both sync and async (non-blocking) modes.
 """
 from datetime import datetime
 from typing import Optional
@@ -12,6 +13,7 @@ from app.config import TIMEZONE, DEFAULT_SCHEDULE_CONFIG
 from app.database import SessionLocal
 from app.models.settings import ScheduleJob, ApiLog
 from app.services.news_fetcher import NewsFetcher
+from app.services.async_processor import AsyncRequestProcessor
 from app.services.cache import cache_manager
 
 
@@ -66,16 +68,27 @@ class SchedulerService:
             if not job or not job.is_enabled:
                 return
 
-            fetcher = NewsFetcher(db)
-            count = fetcher.fetch_by_job(job, triggered_by="scheduler")
+            # Process job using the background processor
+            # This runs in APScheduler's thread pool, so it's non-blocking
+            processor = AsyncRequestProcessor(db)
+            result = processor.process_job(job, triggered_by="scheduler")
 
-            self._log_event(
-                db,
-                event_type="scheduler",
-                job_name=job_name,
-                status="success",
-                message=f"Fetched {count} news items",
-            )
+            if result.get("success"):
+                self._log_event(
+                    db,
+                    event_type="scheduler",
+                    job_name=job_name,
+                    status="success",
+                    message=f"Fetched {result.get('news_count', 0)} news items",
+                )
+            else:
+                self._log_event(
+                    db,
+                    event_type="scheduler",
+                    job_name=job_name,
+                    status="failed",
+                    message=result.get("error", "Unknown error"),
+                )
 
         except Exception as e:
             self._log_event(
@@ -87,6 +100,7 @@ class SchedulerService:
             )
         finally:
             db.close()
+
 
     def init_jobs_from_db(self, db: Session):
         """Initialize scheduler jobs from database."""
@@ -218,9 +232,9 @@ class SchedulerService:
             return {"error": "Job not found", "success": False}
 
         try:
-            fetcher = NewsFetcher(db)
-            count = fetcher.fetch_by_job(job, triggered_by=triggered_by)
-            return {"success": True, "news_count": count}
+            processor = AsyncRequestProcessor(db)
+            result = processor.process_job(job, triggered_by=triggered_by)
+            return result
         except Exception as e:
             return {"error": str(e), "success": False}
 
@@ -228,14 +242,17 @@ class SchedulerService:
         """Run all enabled jobs immediately."""
         jobs = db.query(ScheduleJob).filter(ScheduleJob.is_enabled == True).all()
         results = {"success": 0, "failed": 0, "total_news": 0}
+        processor = AsyncRequestProcessor(db)
 
         for job in jobs:
             try:
-                fetcher = NewsFetcher(db)
-                count = fetcher.fetch_by_job(job, triggered_by=triggered_by)
-                results["success"] += 1
-                results["total_news"] += count
-            except Exception as e:
+                result = processor.process_job(job, triggered_by=triggered_by)
+                if result.get("success"):
+                    results["success"] += 1
+                    results["total_news"] += result.get("news_count", 0)
+                else:
+                    results["failed"] += 1
+            except Exception:
                 results["failed"] += 1
 
         return results

@@ -4,6 +4,26 @@
 
 {% block content %}
 <div class="space-y-8">
+    <!-- Empty State - Show when no news at all -->
+    {% if not latest_news and not market_news and not sector_news %}
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-300 p-8 text-center">
+        <div class="max-w-md mx-auto">
+            <h2 class="text-xl font-semibold text-base-content mb-2">Welcome to FinSights</h2>
+            <p class="text-secondary mb-4">
+                Your AI-powered Indian stock market news aggregator. No news articles are available yet.
+            </p>
+            <div class="bg-base-200 rounded-lg p-4 text-left text-sm">
+                <p class="font-medium text-base-content mb-2">To get started:</p>
+                <ol class="list-decimal list-inside space-y-1 text-secondary">
+                    <li>Go to <a href="/admin/login" class="text-primary hover:underline">Admin Panel</a></li>
+                    <li>Configure your Perplexity API key in Settings</li>
+                    <li>Run the news fetcher from the Dashboard</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Featured/Latest Section -->
     {% if latest_news %}
     <section>
@@ -16,12 +36,15 @@
                         <span class="category-badge category-badge-{{ news.category }}">
                             {{ category_names.get(news.category, news.category) }}
                         </span>
-                        <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                        <span class="time-stamp">{{ news.fetched_at | format_date('relative') }}</span>
+                        {% if news.sentiment_score is not none %}
+                        {{ news.sentiment_score | sentiment_badge(False) }}
+                        {% endif %}
                     </div>
                     <h3 class="card-title text-base font-semibold line-clamp-2">
                         <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
                     </h3>
-                    <p class="text-sm text-secondary line-clamp-2">{{ news.summary[:150] }}...</p>
+                    <p class="text-sm text-secondary line-clamp-2">{{ news.summary | format_summary(150) }}</p>
                     {% if news.source_name %}
                     <div class="mt-2">
                         <span class="source-link">{{ news.source_name }}</span>
@@ -49,12 +72,20 @@
                         <span class="badge badge-primary badge-sm">
                             {{ subcategory_names.get(news.subcategory, news.subcategory) }}
                         </span>
-                        <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                        <span class="time-stamp">{{ news.fetched_at | format_date('relative') }}</span>
+                        {% if news.sentiment_score is not none %}
+                        {{ news.sentiment_score | sentiment_badge(False) }}
+                        {% endif %}
                     </div>
                     <h3 class="card-title text-base font-semibold">
                         <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
                     </h3>
-                    <p class="text-sm text-secondary line-clamp-3">{{ news.summary[:200] }}...</p>
+                    <p class="text-sm text-secondary line-clamp-3">{{ news.summary | format_summary(200) }}</p>
+                    {% if news.news_type == 'summary' %}
+                    <div class="mt-2">
+                        <span class="badge badge-info badge-xs">AI Summary</span>
+                    </div>
+                    {% endif %}
                 </div>
             </article>
             {% endfor %}
@@ -87,11 +118,15 @@
                         <span class="category-badge category-badge-sector">
                             {{ subcategory_names.get(news.subcategory, news.subcategory) }}
                         </span>
+                        <span class="time-stamp">{{ news.fetched_at | format_date('short') }}</span>
+                        {% if news.sentiment_score is not none %}
+                        {{ news.sentiment_score | sentiment_badge(False) }}
+                        {% endif %}
                     </div>
                     <h3 class="card-title text-sm font-semibold line-clamp-2">
                         <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
                     </h3>
-                    <p class="text-xs text-secondary line-clamp-2">{{ news.summary[:100] }}...</p>
+                    <p class="text-xs text-secondary line-clamp-2">{{ news.summary | format_summary(100) }}</p>
                 </div>
             </article>
             {% endfor %}
@@ -116,15 +151,30 @@
                             <span class="badge badge-ghost badge-sm shrink-0">
                                 {{ subcategory_names.get(news.subcategory, news.subcategory) }}
                             </span>
-                            <div>
+                            <div class="flex-1 min-w-0">
                                 <h3 class="text-sm font-medium line-clamp-2">
                                     <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
                                 </h3>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-xs text-secondary">{{ news.fetched_at | format_date('relative') }}</span>
+                                    {% if news.sentiment_score is not none %}
+                                    {{ news.sentiment_score | sentiment_badge(False) }}
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </article>
                 {% endfor %}
+            </div>
+        </section>
+        {% else %}
+        <section>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="section-header mb-0 border-0 pb-0">Macro & Economy</h2>
+            </div>
+            <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300 text-center">
+                <p class="text-sm text-secondary">No macro news available yet.</p>
             </div>
         </section>
         {% endif %}
@@ -144,15 +194,30 @@
                             <span class="badge badge-warning badge-sm shrink-0">
                                 {{ subcategory_names.get(news.subcategory, news.subcategory) }}
                             </span>
-                            <div>
+                            <div class="flex-1 min-w-0">
                                 <h3 class="text-sm font-medium line-clamp-2">
                                     <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
                                 </h3>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-xs text-secondary">{{ news.fetched_at | format_date('relative') }}</span>
+                                    {% if news.sentiment_score is not none %}
+                                    {{ news.sentiment_score | sentiment_badge(False) }}
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </article>
                 {% endfor %}
+            </div>
+        </section>
+        {% else %}
+        <section>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="section-header mb-0 border-0 pb-0">Regulations</h2>
+            </div>
+            <div class="bg-base-100 rounded-lg p-6 shadow-sm border border-base-300 text-center">
+                <p class="text-sm text-secondary">No regulation news available yet.</p>
             </div>
         </section>
         {% endif %}

@@ -25,12 +25,15 @@
                     <span class="category-badge category-badge-{{ news.category }}">
                         {{ category_names.get(news.category, news.category) }}
                     </span>
-                    <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                    <span class="time-stamp">{{ news.fetched_at | format_date('relative') }}</span>
+                    {% if news.sentiment_score is not none %}
+                    {{ news.sentiment_score | sentiment_badge(False) }}
+                    {% endif %}
                 </div>
                 <h3 class="card-title text-base font-semibold line-clamp-2">
                     <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
                 </h3>
-                <p class="text-sm text-secondary line-clamp-2">{{ news.summary[:150] }}...</p>
+                <p class="text-sm text-secondary line-clamp-2">{{ news.summary | format_summary(150) }}</p>
                 {% if news.source_name %}
                 <div class="mt-2">
                     <span class="source-link">{{ news.source_name }}</span>
@@ -42,10 +45,10 @@
     </div>
     {% else %}
     <div class="text-center py-12 bg-base-100 rounded-lg shadow-sm border border-base-300">
+        <h3 class="text-lg font-semibold text-base-content mb-2">No News Found</h3>
         <p class="text-secondary mb-4">No news found for {{ symbol }}</p>
         <p class="text-sm text-secondary mb-4">
-            News for this stock will be fetched on demand.
-            Check back in a few moments.
+            News for this stock will be fetched on demand. Please try refreshing in a moment.
         </p>
         <button onclick="location.reload()" class="btn btn-primary btn-sm">Refresh</button>
     </div>

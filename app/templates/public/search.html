@@ -14,7 +14,7 @@
         </form>
         {% if query %}
         <p class="text-sm text-secondary mt-2">
-            Found {{ results|length }} results for "{{ query }}"
+            Found {{ results|length }} result{% if results|length != 1 %}s{% endif %} for "{{ query }}"
         </p>
         {% endif %}
     </div>
@@ -29,20 +29,39 @@
                     <span class="category-badge category-badge-{{ news.category }}">
                         {{ category_names.get(news.category, news.category) }}
                     </span>
-                    <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                    <span class="time-stamp">{{ news.fetched_at | format_date('relative') }}</span>
+                    {% if news.sentiment_score is not none %}
+                    {{ news.sentiment_score | sentiment_badge(False) }}
+                    {% endif %}
                 </div>
                 <h3 class="card-title text-base font-semibold line-clamp-2">
                     <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
                 </h3>
-                <p class="text-sm text-secondary line-clamp-2">{{ news.summary[:150] }}...</p>
+                <p class="text-sm text-secondary line-clamp-2">{{ news.summary | format_summary(150) }}</p>
             </div>
         </article>
         {% endfor %}
     </div>
     {% elif query %}
-    <div class="text-center py-12 bg-base-100 rounded-lg shadow-sm">
+    <div class="text-center py-12 bg-base-100 rounded-lg shadow-sm border border-base-300">
+        <h3 class="text-lg font-semibold text-base-content mb-2">No Results Found</h3>
         <p class="text-secondary mb-4">No results found for "{{ query }}"</p>
-        <p class="text-sm text-secondary">Try a different search term or browse by category</p>
+        <p class="text-sm text-secondary mb-4">Try a different search term or browse by category</p>
+        <div class="flex flex-wrap justify-center gap-2">
+            <a href="/category/market" class="btn btn-outline btn-sm">Market</a>
+            <a href="/category/sector" class="btn btn-outline btn-sm">Sectors</a>
+            <a href="/category/macro" class="btn btn-outline btn-sm">Macro</a>
+            <a href="/category/regulation" class="btn btn-outline btn-sm">Regulations</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-12 bg-base-100 rounded-lg shadow-sm border border-base-300">
+        <h3 class="text-lg font-semibold text-base-content mb-2">Search News</h3>
+        <p class="text-secondary mb-4">Enter a search term to find relevant news articles</p>
+        <div class="flex flex-wrap justify-center gap-2">
+            <a href="/category/market" class="btn btn-outline btn-sm">Browse Market News</a>
+            <a href="/category/sector" class="btn btn-outline btn-sm">Browse Sector News</a>
+        </div>
     </div>
     {% endif %}
 </div>

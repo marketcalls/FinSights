@@ -117,3 +117,40 @@ class ApiLog(Base):
             "error_message": self.error_message,
             "triggered_by": self.triggered_by,
         }
+
+
+class AsyncRequest(Base):
+    """Track pending async Perplexity API requests."""
+
+    __tablename__ = "async_requests"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    request_id = Column(String(100), unique=True, nullable=False)  # Perplexity request ID
+    job_name = Column(String(100), nullable=True)
+    request_type = Column(String(20), nullable=False)  # 'summary' or 'news'
+    category = Column(String(50), nullable=True)
+    subcategory = Column(String(50), nullable=True)
+    query = Column(Text, nullable=True)
+    status = Column(String(20), default="pending")  # 'pending', 'completed', 'failed', 'processed'
+    submitted_at = Column(DateTime, default=get_ist_now)
+    completed_at = Column(DateTime, nullable=True)
+    triggered_by = Column(String(100), nullable=True)
+    error_message = Column(Text, nullable=True)
+    poll_count = Column(Integer, default=0)  # Track how many times we've polled
+
+    def to_dict(self):
+        """Convert to dictionary."""
+        return {
+            "id": self.id,
+            "request_id": self.request_id,
+            "job_name": self.job_name,
+            "request_type": self.request_type,
+            "category": self.category,
+            "subcategory": self.subcategory,
+            "query": self.query,
+            "status": self.status,
+            "submitted_at": self.submitted_at.isoformat() if self.submitted_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "triggered_by": self.triggered_by,
+            "poll_count": self.poll_count,
+        }

@@ -2,7 +2,18 @@
 module.exports = {
   content: [
     "../app/templates/**/*.html",
-    "../app/static/js/**/*.js"
+    "../app/static/js/**/*.js",
+    "../app/template_filters.py"
+  ],
+  safelist: [
+    // Sentiment badge colors (dynamically generated in Python)
+    'bg-green-300', 'bg-green-400', 'bg-green-500',
+    'bg-red-300', 'bg-red-400', 'bg-red-500',
+    'bg-gray-400',
+    'text-white', 'text-green-900', 'text-red-900',
+    'text-green-300', 'text-green-400', 'text-green-500',
+    'text-red-300', 'text-red-400', 'text-red-500',
+    'text-gray-400',
   ],
   theme: {
     extend: {
@@ -11,7 +22,10 @@ module.exports = {
       },
     },
   },
-  plugins: [require("daisyui")],
+  plugins: [
+    require("@tailwindcss/typography"),
+    require("daisyui")
+  ],
   daisyui: {
     themes: [
       {

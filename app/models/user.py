@@ -23,6 +23,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(200), nullable=False)
     is_active = Column(Boolean, default=True)
+    must_change_password = Column(Boolean, default=True)  # Force password change on first login
     created_at = Column(DateTime, default=get_ist_now)
 
     # Relationships
@@ -48,5 +49,6 @@ class User(Base):
             "id": self.id,
             "username": self.username,
             "is_active": self.is_active,
+            "must_change_password": self.must_change_password,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

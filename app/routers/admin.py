@@ -50,6 +50,9 @@ def require_auth(request: Request, db: Session = Depends(get_db)) -> User:
     user = get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=302, headers={"Location": "/admin/login"})
+    # Redirect to password change if required (except for the change-password route itself)
+    if user.must_change_password and "/change-password" not in str(request.url):
+        raise HTTPException(status_code=302, headers={"Location": "/admin/change-password"})
     return user
 
 
@@ -92,7 +95,13 @@ async def login(
 
     # Create session
     session_token = serializer.dumps(user.id)
-    response = RedirectResponse(url="/admin/dashboard", status_code=302)
+
+    # Check if user must change password (first login with default credentials)
+    if user.must_change_password:
+        response = RedirectResponse(url="/admin/change-password", status_code=302)
+    else:
+        response = RedirectResponse(url="/admin/dashboard", status_code=302)
+
     response.set_cookie("session", session_token, httponly=True, max_age=86400)
     return response
 
@@ -103,6 +112,57 @@ async def logout():
     response = RedirectResponse(url="/admin/login", status_code=302)
     response.delete_cookie("session")
     return response
+
+
+@router.get("/change-password", response_class=HTMLResponse)
+async def change_password_page(request: Request, db: Session = Depends(get_db)):
+    """Force password change page."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=302)
+    if not user.must_change_password:
+        return RedirectResponse(url="/admin/dashboard", status_code=302)
+
+    return templates.TemplateResponse("admin/change_password.html", {
+        "request": request,
+        "current_user": user,
+    })
+
+
+@router.post("/change-password")
+async def change_password(
+    request: Request,
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Process forced password change."""
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    # Validate passwords match
+    if new_password != confirm_password:
+        return templates.TemplateResponse("admin/change_password.html", {
+            "request": request,
+            "current_user": user,
+            "error": "Passwords do not match"
+        })
+
+    # Validate password strength
+    if len(new_password) < 8:
+        return templates.TemplateResponse("admin/change_password.html", {
+            "request": request,
+            "current_user": user,
+            "error": "Password must be at least 8 characters long"
+        })
+
+    # Update password and clear the flag
+    user.set_password(new_password)
+    user.must_change_password = False
+    db.commit()
+
+    return RedirectResponse(url="/admin/dashboard", status_code=302)
 
 
 # ============ DASHBOARD ============

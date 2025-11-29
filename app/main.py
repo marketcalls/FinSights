@@ -13,6 +13,7 @@ from app.services.cache import cache_manager
 from app.services.scheduler import scheduler_service
 from app.services.perplexity import PerplexityService
 from app.routers import public, admin
+from app.template_filters import register_filters
 
 
 def init_default_admin(db: Session):
@@ -95,6 +96,10 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # Include routers
 app.include_router(public.router)
 app.include_router(admin.router)
+
+# Register custom template filters
+register_filters(public.templates)
+register_filters(admin.templates)
 
 
 @app.get("/health")

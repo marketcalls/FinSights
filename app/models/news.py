@@ -43,6 +43,10 @@ class News(Base):
     # Stock Association
     symbols = Column(String(500), nullable=True)  # Comma-separated: "RELIANCE,TCS,INFY"
 
+    # Sentiment Analysis
+    sentiment_score = Column(Integer, nullable=True)  # -10 to +10, 0 is neutral
+    sentiment_explanation = Column(Text, nullable=True)  # Why this score was given
+
     # Admin Control
     is_published = Column(Boolean, default=True)
     is_manual = Column(Boolean, default=False)
@@ -79,6 +83,8 @@ class News(Base):
             "subcategory": self.subcategory,
             "news_type": self.news_type,
             "symbols": self.symbols,
+            "sentiment_score": self.sentiment_score,
+            "sentiment_explanation": self.sentiment_explanation,
             "is_published": self.is_published,
             "is_manual": self.is_manual,
             "is_featured": self.is_featured,

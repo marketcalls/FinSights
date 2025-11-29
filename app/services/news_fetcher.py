@@ -53,7 +53,7 @@ class NewsFetcher:
         triggered_by: str = "scheduler",
     ) -> Optional[News]:
         """
-        Fetch a market summary using Chat Completions API.
+        Fetch a market summary using Chat Completions API with structured JSON.
         Creates a single news item with AI-generated summary.
         """
         result = self.perplexity.fetch_summary(
@@ -61,6 +61,7 @@ class NewsFetcher:
             job_name=job_name,
             triggered_by=triggered_by,
             recency_filter="hour",
+            use_structured=True,
         )
 
         if result.get("error") or not result.get("content"):
@@ -68,15 +69,31 @@ class NewsFetcher:
 
         # Create news item
         now = datetime.now(TIMEZONE)
-        title = self._generate_title(subcategory, now)
+
+        # Use API-generated title if available, otherwise generate one
+        title = result.get("title") or self._generate_title(subcategory, now)
+
+        # Content is already formatted from structured response
+        content = result["content"]
+
+        # Create clean summary text for preview
+        summary_text = self.perplexity._clean_summary_text(content)
+        if len(summary_text) > 500:
+            summary_text = summary_text[:497] + "..."
+
+        # Extract sentiment from result
+        sentiment_score = result.get("sentiment_score", 0)
+        sentiment_explanation = result.get("sentiment_explanation", "")
 
         news = News(
             title=title,
-            summary=result["content"][:500],
-            content=result["content"],
+            summary=summary_text,
+            content=content,
             category=category,
             subcategory=subcategory,
             news_type="summary",
+            sentiment_score=sentiment_score,
+            sentiment_explanation=sentiment_explanation,
             fetched_at=now,
             is_published=True,
         )
@@ -115,56 +132,73 @@ class NewsFetcher:
         triggered_by: str = "scheduler",
     ) -> list[News]:
         """
-        Fetch sector news using Search API.
-        Parses results into individual news items.
+        Fetch sector news using structured JSON API.
+        Returns properly formatted articles with full content.
         """
-        articles = self.perplexity.fetch_news_articles(
-            queries=[query],
+        # Use structured news fetching for complete articles
+        articles = self.perplexity.fetch_structured_news(
+            query=query,
             job_name=job_name,
             triggered_by=triggered_by,
-            max_results=5,
+            recency_filter="day",
+            max_articles=5,
         )
 
         news_items = []
         now = datetime.now(TIMEZONE)
 
         for article in articles:
-            snippet = article.get("snippet", "")
-            source_url = article.get("url", "")
-            source_name = article.get("title", "")
-            source_domain = self._extract_domain(source_url)
-            pub_date = self._parse_date(article.get("date"))
+            title = article.get("title", "")
+            summary = article.get("summary", "")
+            content = article.get("content", "")
+            stocks = article.get("stocks_mentioned", [])
+            citations = article.get("citations", [])
+            sentiment_score = article.get("sentiment_score", 0)
+            sentiment_explanation = article.get("sentiment_explanation", "")
 
-            # Parse snippet into individual articles
-            parsed_articles = self.perplexity.parse_snippet_to_articles(
-                snippet, source_url, source_name
+            # Skip if no title
+            if not title or len(title) < 10:
+                continue
+
+            # Check for duplicates
+            existing = (
+                self.db.query(News)
+                .filter(News.title == title)
+                .first()
             )
+            if existing:
+                continue
 
-            for parsed in parsed_articles:
-                # Check for duplicates
-                existing = (
-                    self.db.query(News)
-                    .filter(News.title == parsed["title"])
-                    .first()
-                )
-                if existing:
-                    continue
+            # Build symbols string from mentioned stocks
+            symbols = ",".join(stocks) if stocks else None
 
-                news = News(
-                    title=parsed["title"],
-                    summary=parsed["summary"],
-                    source_url=parsed.get("source_url", source_url),
-                    source_name=parsed.get("source_name", source_name),
-                    source_domain=source_domain,
-                    published_at=pub_date,
-                    fetched_at=now,
-                    category=category,
-                    subcategory=subcategory,
-                    news_type="article",
-                    is_published=True,
+            news = News(
+                title=title[:500],  # Respect DB limit
+                summary=summary or content[:500],
+                content=content,  # Full content stored
+                fetched_at=now,
+                category=category,
+                subcategory=subcategory,
+                symbols=symbols,
+                sentiment_score=sentiment_score,
+                sentiment_explanation=sentiment_explanation,
+                news_type="article",
+                is_published=True,
+            )
+            self.db.add(news)
+            self.db.flush()  # Get ID for citations
+
+            # Add citations
+            for cit in citations:
+                citation = Citation(
+                    news_id=news.id,
+                    citation_index=cit.get("index"),
+                    url=cit.get("url"),
+                    title=cit.get("title"),
                 )
-                self.db.add(news)
-                news_items.append(news)
+                self.db.add(citation)
+
+            news_items.append(news)
 
         self.db.commit()
 
@@ -186,56 +220,70 @@ class NewsFetcher:
         triggered_by: str = "manual",
     ) -> list[News]:
         """
-        Fetch news for a specific stock symbol.
+        Fetch news for a specific stock symbol using structured JSON API.
         """
-        query = f"{symbol} stock news India NSE BSE latest"
+        query = f"{symbol} stock news India NSE BSE latest developments"
 
-        articles = self.perplexity.fetch_news_articles(
-            queries=[query],
+        # Use structured news fetching for complete articles
+        articles = self.perplexity.fetch_structured_news(
+            query=query,
             job_name=f"stock_{symbol}",
             triggered_by=triggered_by,
-            max_results=5,
+            recency_filter="day",
+            max_articles=5,
         )
 
         news_items = []
         now = datetime.now(TIMEZONE)
 
         for article in articles:
-            snippet = article.get("snippet", "")
-            source_url = article.get("url", "")
-            source_name = article.get("title", "")
-            source_domain = self._extract_domain(source_url)
+            title = article.get("title", "")
+            summary = article.get("summary", "")
+            content = article.get("content", "")
+            citations = article.get("citations", [])
+            sentiment_score = article.get("sentiment_score", 0)
+            sentiment_explanation = article.get("sentiment_explanation", "")
 
-            # Parse snippet
-            parsed_articles = self.perplexity.parse_snippet_to_articles(
-                snippet, source_url, source_name
+            # Skip if no title
+            if not title or len(title) < 10:
+                continue
+
+            # Check for duplicates
+            existing = (
+                self.db.query(News)
+                .filter(News.title == title)
+                .first()
             )
+            if existing:
+                continue
 
-            for parsed in parsed_articles:
-                # Check for duplicates
-                existing = (
-                    self.db.query(News)
-                    .filter(News.title == parsed["title"])
-                    .first()
-                )
-                if existing:
-                    continue
+            news = News(
+                title=title[:500],
+                summary=summary or content[:500],
+                content=content,  # Full content
+                fetched_at=now,
+                category="stock",
+                subcategory=symbol.lower(),
+                symbols=symbol.upper(),
+                sentiment_score=sentiment_score,
+                sentiment_explanation=sentiment_explanation,
+                news_type="article",
+                is_published=True,
+            )
+            self.db.add(news)
+            self.db.flush()
 
-                news = News(
-                    title=parsed["title"],
-                    summary=parsed["summary"],
-                    source_url=parsed.get("source_url", source_url),
-                    source_name=parsed.get("source_name", source_name),
-                    source_domain=source_domain,
-                    fetched_at=now,
-                    category="stock",
-                    subcategory=symbol.lower(),
-                    symbols=symbol.upper(),
-                    news_type="article",
-                    is_published=True,
+            # Add citations
+            for cit in citations:
+                citation = Citation(
+                    news_id=news.id,
+                    citation_index=cit.get("index"),
+                    url=cit.get("url"),
+                    title=cit.get("title"),
                 )
-                self.db.add(news)
-                news_items.append(news)
+                self.db.add(citation)
+
+            news_items.append(news)
 
         self.db.commit()
 

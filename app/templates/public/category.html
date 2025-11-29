@@ -39,12 +39,15 @@
                         {{ subcategory_names.get(news.subcategory, news.subcategory) }}
                     </span>
                     {% endif %}
-                    <span class="time-stamp">{{ news.fetched_at[:10] if news.fetched_at else '' }}</span>
+                    <span class="time-stamp">{{ news.fetched_at | format_date('relative') }}</span>
+                    {% if news.sentiment_score is not none %}
+                    {{ news.sentiment_score | sentiment_badge(False) }}
+                    {% endif %}
                 </div>
                 <h3 class="card-title text-base font-semibold line-clamp-2">
                     <a href="/news/{{ news.id }}" class="hover:text-primary">{{ news.title }}</a>
                 </h3>
-                <p class="text-sm text-secondary line-clamp-2">{{ news.summary[:150] }}...</p>
+                <p class="text-sm text-secondary line-clamp-2">{{ news.summary | format_summary(150) }}</p>
                 {% if news.source_name %}
                 <div class="mt-2">
                     <span class="source-link">{{ news.source_name }}</span>
@@ -55,9 +58,10 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="text-center py-12">
-        <p class="text-secondary">No news found in this category.</p>
-        <a href="/" class="btn btn-primary btn-sm mt-4">Back to Home</a>
+    <div class="text-center py-12 bg-base-100 rounded-lg shadow-sm border border-base-300">
+        <h3 class="text-lg font-semibold text-base-content mb-2">No News Found</h3>
+        <p class="text-secondary mb-4">There are no news articles in this category yet.</p>
+        <a href="/" class="btn btn-primary btn-sm">Back to Home</a>
     </div>
     {% endif %}
 </div>
