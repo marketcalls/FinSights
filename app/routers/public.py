@@ -46,9 +46,21 @@ async def home(request: Request):
 
 
 @router.get("/news/{news_id}", response_class=HTMLResponse)
-async def news_detail(request: Request, news_id: int):
+async def news_detail(request: Request, news_id: int, db: Session = Depends(get_db)):
     """Individual news detail page."""
+    from app.models.news import News
+
+    # Try cache first
     news = cache_manager.get_news_by_id(news_id)
+
+    # Fallback to database if not in cache
+    if not news:
+        news_obj = db.query(News).filter(News.id == news_id, News.is_published == True).first()
+        if news_obj:
+            news = news_obj.to_dict()
+            # Add to cache for future requests
+            cache_manager.add_news(news)
+
     if not news:
         return templates.TemplateResponse("public/search.html", {
             "request": request,
