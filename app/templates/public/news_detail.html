@@ -146,6 +146,25 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- AI Scenarios Section -->
+            <div class="mt-8 pt-6 border-t border-base-300 scenarios-section">
+                <div class="card bg-base-200">
+                    <div class="card-body">
+                        <h3 class="card-title text-lg">🔮 Explore "What If" Scenarios</h3>
+                        <p class="text-sm opacity-70 mb-4">
+                            Curious about alternative outcomes? Let AI analyze different possibilities for this news event and their potential market impact.
+                        </p>
+                        <button id="generate-scenarios-btn" onclick="generateScenarios()" class="btn btn-primary btn-sm">
+                            🤖 Generate AI Scenarios
+                        </button>
+                        
+                        <div id="scenarios-container" class="mt-4 hidden">
+                            <!-- Scenarios will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </article>
 

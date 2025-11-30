@@ -58,6 +58,7 @@ class News(Base):
 
     # Relationships
     citations = relationship("Citation", back_populates="news", cascade="all, delete-orphan")
+    scenarios = relationship("Scenario", back_populates="news", cascade="all, delete-orphan")
     creator = relationship("User", back_populates="news_items")
 
     # Indexes
