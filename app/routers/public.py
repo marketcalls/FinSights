@@ -11,6 +11,7 @@ from app.database import get_db
 from app.config import CATEGORY_NAMES, SUBCATEGORY_NAMES, SYMBOLS_FILE
 from app.services.cache import cache_manager
 from app.services.news_fetcher import NewsFetcher
+from app.services.scenario_service import ScenarioService
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -201,3 +202,40 @@ async def stock_page(request: Request, symbol: str, db: Session = Depends(get_db
         "nifty50_symbols": nifty50,
         "category_names": CATEGORY_NAMES,
     })
+
+
+# ============ SCENARIO ENDPOINTS ============
+
+@router.post("/news/{news_id}/scenarios")
+async def generate_scenarios(
+    news_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Generate AI scenarios for a news article."""
+    scenario_service = ScenarioService(db)
+    
+    # Parse user parameters from request body if provided
+    try:
+        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+        user_parameters = body.get("parameters")
+        num_scenarios = body.get("num_scenarios", 3)
+    except:
+        user_parameters = None
+        num_scenarios = 3
+    
+    scenarios = scenario_service.generate_scenarios(
+        news_id=news_id,
+        user_parameters=user_parameters,
+        num_scenarios=num_scenarios
+    )
+    
+    return {"scenarios": scenarios, "count": len(scenarios)}
+
+
+@router.get("/news/{news_id}/scenarios")
+async def get_scenarios(news_id: int, db: Session = Depends(get_db)):
+    """Get existing scenarios for a news article."""
+    scenario_service = ScenarioService(db)
+    scenarios = scenario_service.get_scenarios_for_news(news_id)
+    return {"scenarios": scenarios, "count": len(scenarios)}
